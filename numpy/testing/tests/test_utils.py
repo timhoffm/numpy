@@ -365,8 +365,15 @@ class TestEqual(TestArrayEqual):
             self._test_not_equal([b], np.timedelta64(123, "s"))
 
     def test_non_numeric(self):
+        # str - str
         self._assert_func('ab', 'ab')
         self._test_not_equal('ab', 'abb')
+        # bytes - bytes
+        self._assert_func(b'ab', b'ab')
+        self._test_not_equal(b'ab', b'abb')
+        # str - bytes
+        self._test_not_equal('ab', b'ab')
+        self._test_not_equal('ab', b'abb')
 
     def test_complex_item(self):
         self._assert_func(complex(1, 2), complex(1, 2))
@@ -390,6 +397,22 @@ class TestEqual(TestArrayEqual):
         a = np.array([datetime.datetime(2000, 1, 1),
                       datetime.datetime(2000, 1, 2)])
         self._test_not_equal(a, a[::-1])
+
+    def test_sequence(self):
+        from collections.abc import Sequence
+
+        class ListProxy(Sequence):
+            def __init__(self, seq):
+                self.list = seq
+
+            def __len__(self):
+                return len(self.list)
+
+            def __getitem__(self, index):
+                return self.list[index]
+
+        self._test_equal(ListProxy([1, 2, 3]), [1, 2, 3])
+        self._test_not_equal(ListProxy([1, 2, 3]), [1, 2, 4])
 
 
 class TestArrayAlmostEqual(_GenericTest):

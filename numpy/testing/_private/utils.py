@@ -12,6 +12,7 @@ import warnings
 from functools import partial, wraps
 import shutil
 import contextlib
+from collections.abc import Sequence
 from tempfile import mkdtemp, mkstemp
 from unittest.case import SkipTest
 from warnings import WarningMessage
@@ -327,6 +328,12 @@ def assert_equal(actual, desired, err_msg='', verbose=True):
 
     """
     __tracebackhide__ = True  # Hide traceback for py.test
+    msg = build_err_msg([actual, desired], err_msg, verbose=verbose)
+
+    if isinstance(desired, (str, bytes)) and isinstance(actual, (str, bytes)):
+        if not (desired == actual):
+            raise AssertionError(msg)
+        return
     if isinstance(desired, dict):
         if not isinstance(actual, dict):
             raise AssertionError(repr(type(actual)))
@@ -337,7 +344,7 @@ def assert_equal(actual, desired, err_msg='', verbose=True):
             assert_equal(actual[k], desired[k], f'key={k!r}\n{err_msg}',
                          verbose)
         return
-    if isinstance(desired, (list, tuple)) and isinstance(actual, (list, tuple)):
+    if isinstance(desired, Sequence) and isinstance(actual, Sequence):
         assert_equal(len(actual), len(desired), err_msg, verbose)
         for k in range(len(desired)):
             assert_equal(actual[k], desired[k], f'item={k!r}\n{err_msg}',
@@ -347,7 +354,6 @@ def assert_equal(actual, desired, err_msg='', verbose=True):
     from numpy.lib import iscomplexobj, real, imag
     if isinstance(actual, ndarray) or isinstance(desired, ndarray):
         return assert_array_equal(actual, desired, err_msg, verbose)
-    msg = build_err_msg([actual, desired], err_msg, verbose=verbose)
 
     # Handle complex numbers: separate into real/imag to handle
     # nan/inf/negative zero correctly
